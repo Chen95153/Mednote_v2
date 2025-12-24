@@ -1,0 +1,5 @@
+{
+  "name": "MediScribe AI 的google登入",
+  "description": "A medical timeline editor that uses Gemini to generate formal admission notes from structured inputs.",
+  "requestFramePermissions": []
+}
