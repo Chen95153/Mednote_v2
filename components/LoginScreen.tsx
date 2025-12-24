@@ -98,7 +98,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, authError }) => {
                 </h4>
                 <ol className="list-decimal list-inside text-xs text-slate-600 space-y-2">
                   <li><strong>Download</strong> or <strong>Export</strong> this project from the editor.</li>
-                  <li>Run it locally (e.g., <code>npm run dev</code> -> <code>localhost</code>).</li>
+                  <li>Run it locally (e.g., <code>npm run dev</code> &rarr; <code>localhost</code>).</li>
                   <li>Or deploy it to a hosting service (Vercel, Netlify).</li>
                 </ol>
               </div>
