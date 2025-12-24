@@ -1,0 +1,63 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MediScribe AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+       /* Custom scrollbar for overall app */
+       ::-webkit-scrollbar {
+           width: 8px;
+           height: 8px;
+       }
+       ::-webkit-scrollbar-track {
+           background: #f1f5f9; 
+       }
+       ::-webkit-scrollbar-thumb {
+           background: #cbd5e1; 
+           border-radius: 4px;
+       }
+       ::-webkit-scrollbar-thumb:hover {
+           background: #94a3b8; 
+       }
+
+       /* Specific internal scrollbar for flyout menus */
+       .custom-scrollbar::-webkit-scrollbar {
+           width: 5px;
+       }
+       .custom-scrollbar::-webkit-scrollbar-track {
+           background: transparent;
+       }
+       .custom-scrollbar::-webkit-scrollbar-thumb {
+           background: #e2e8f0;
+           border-radius: 10px;
+       }
+       .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+           background: #cbd5e1;
+       }
+    </style>
+
+  <script type="importmap">
+{
+  "imports": {
+    "lucide-react": "https://esm.sh/lucide-react@^0.561.0",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3",
+    "@google/genai": "https://esm.sh/@google/genai@^1.34.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react-dom": "https://esm.sh/react-dom@^19.2.3",
+    "firebase/app": "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js",
+    "firebase/auth": "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js",
+    "firebase/firestore": "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js",
+    "firebase/": "https://esm.sh/firebase@^12.7.0/"
+  }
+}
+</script>
+  <script type="module" crossorigin src="/assets/index-CJ_mUVo4.js"></script>
+</head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
