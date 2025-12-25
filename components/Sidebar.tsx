@@ -66,11 +66,22 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick, customItems = {}, onAddC
   const [addMenuL2FlyoutPos, setAddMenuL2FlyoutPos] = useState<{ top: number; left: number } | null>(null);
 
   const [newCustomCategory, setNewCustomCategory] = useState<string>('');
-  const [newCustomCategoryDisplay, setNewCustomCategoryDisplay] = useState('Select Category');
+  const [newCustomCategoryDisplay, setNewCustomCategoryDisplay] = useState<string>('Select Category');
   const [newCustomItemName, setNewCustomItemName] = useState('');
 
+  // Toast State
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+
   const addMenuButtonRef = useRef<HTMLButtonElement>(null);
-  const addMenuCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const addMenuCloseTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const showSuccessToast = (msg: string) => {
+    setToastMessage(msg);
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 2000);
+  };
+
 
 
   const visibleCategories: MenuCategory[] = [
@@ -391,7 +402,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick, customItems = {}, onAddC
                     if (onAddCustomItem && newCustomCategory && newCustomItemName.trim()) {
                       onAddCustomItem(newCustomCategory, newCustomItemName.trim());
                       setNewCustomItemName('');
-                      // Optional: Feedback?
+                      showSuccessToast(`Added to ${newCustomCategoryDisplay}`);
                     }
                   }}
                   className="px-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
