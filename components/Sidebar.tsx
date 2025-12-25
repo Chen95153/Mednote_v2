@@ -14,17 +14,7 @@ interface SidebarProps {
 // Define structure for sub-items that can include headers
 type NestedItem = string | { type: 'header'; label: string };
 
-const ADD_MENU_STRUCTURE = {
-  'Vital Sign': null,
-  'Symptom': null,
-  'Disease': null,
-  'Medical Facility': null,
-  'Physical examination': null,
-  'Lab data': null,
-  'Culture / Gram stain': null,
-  'Image finding': null,
-  'Treatment': ['Antibiotics', 'Other'],
-};
+
 
 
 const Sidebar: React.FC<SidebarProps> = ({ onItemClick, customItems = {}, onAddCustomItem }) => {
@@ -103,26 +93,28 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick, customItems = {}, onAddC
     'Other (其他抗生素)': ['Linezolid (Zyvox)', 'Metronidazole (Flagyl)', 'TMP-SMX (Baktar)', 'TMP-SMX (Sevatrim)', 'Colistin (Colimycin)', 'Clindamycin (Clincin)', 'Rifampin', 'Fosfomycin', 'Fusidic acid (Fucidin)', 'Monobactam (Aztreonam)']
   };
 
-  // --- Merge Custom Items Logic ---
+  // --- Dynamic Data Merging ---
+  const mergeList = (baseList: string[], key: string) => {
+    const custom = customItems[key] || [];
+    if (custom.length === 0) return baseList;
+    const existing = new Set(baseList);
+    return [...baseList, ...custom.filter(i => !existing.has(i))].sort((a, b) => a.localeCompare(b));
+  };
+
   const mergedAbxData = useMemo(() => {
     const merged: Record<string, NestedItem[]> = { ...abxData };
-
-    // Merge for Antibiotics sub-categories
     Object.keys(abxData).forEach(cat => {
       const customForCat = customItems[cat] || [];
       if (customForCat.length > 0) {
-        // Filter out duplicates if any (though unlikely if names are unique)
         const existingLabels = new Set(merged[cat].map(i => typeof i === 'string' ? i : i.label));
         const toAdd = customForCat.filter(i => !existingLabels.has(i));
         merged[cat] = [...merged[cat], ...toAdd];
       }
     });
-
     return merged;
   }, [abxData, customItems]);
 
-
-  const cultureOrganisms = [
+  const cultureOrganismsBase = [
     'Acinetobacter baumannii', 'Acinetobacter spp.', 'Actinomyces', 'Aeromonas hydrophila', 'Aggregatibacter actinomycetemcomitans', 'Alcaligenes', 'Aspergillus fumigatus',
     'Bacillus anthracis', 'Bacillus cereus', 'Bacillus spp.', 'Bacteroides fragilis', 'Bartonella henselae', 'Bordetella pertussis', 'Borrelia burgdorferi', 'Borrelia recurrentis',
     'Brucella melitensis', 'Burkholderia cepacia complex', 'Burkholderia pseudomallei', 'Campylobacter coli', 'Campylobacter jejuni', 'Candida albicans', 'Candida spp.',
@@ -144,7 +136,9 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick, customItems = {}, onAddC
     'Ureaplasma urealyticum', 'Vibrio cholerae', 'Vibrio parahaemolyticus', 'Vibrio vulnificus', 'Yersinia enterocolitica', 'Yersinia pestis'
   ];
 
-  const gramStainResults = [
+  const mergedCultureOrganisms = useMemo(() => mergeList(cultureOrganismsBase, 'Culture'), [cultureOrganismsBase, customItems]);
+
+  const gramStainResultsBase = [
     'No organisms seen',
     'GPC: Gram-positive cocci in clusters',
     'GPC: Gram-positive cocci in chains',
@@ -156,7 +150,9 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick, customItems = {}, onAddC
     'GVC (Gram-variable cocci/bacilli)'
   ];
 
-  const breathingSounds = [
+  const mergedGramStain = useMemo(() => mergeList(gramStainResultsBase, 'Gram stain'), [gramStainResultsBase, customItems]);
+
+  const breathingSoundsBase = [
     'Crackles (Rales) - Coarse',
     'Crackles (Rales) - Fine',
     'Stridor',
@@ -164,6 +160,11 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick, customItems = {}, onAddC
     'Rhonchi',
     'Pleural Friction Rub'
   ];
+
+  const mergedBreathingSounds = useMemo(() => mergeList(breathingSoundsBase, 'Breathing sound'), [breathingSoundsBase, customItems]);
+
+
+
 
   const lungZones = [
     { id: 'RUL', label: 'RUL', col: 'Right', row: 'Upper' },
@@ -555,7 +556,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick, customItems = {}, onAddC
             ))}
 
             {/* Breathing Sound Sub-items */}
-            {hoveredCategory === 'Physical examination' && hoveredItem === 'Breathing sound' && fuzzyFilter(breathingSounds, l2SearchTerm).map(sub => (
+            {hoveredCategory === 'Physical examination' && hoveredItem === 'Breathing sound' && fuzzyFilter(mergedBreathingSounds, l2SearchTerm).map(sub => (
               <div key={sub} onMouseEnter={(e) => handleMouseEnterSubItem(e, sub)} className={`px-4 py-3 text-sm font-semibold flex items-center justify-between cursor-pointer border-b last:border-0 transition-colors ${hoveredSubItem === sub ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-700 hover:bg-slate-50'}`}>{sub}<ChevronRight className="w-3 h-3" /></div>
             ))}
 
@@ -602,10 +603,10 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick, customItems = {}, onAddC
           </div>
           <div className="overflow-y-auto custom-scrollbar flex-1 py-1">
             {/* Culture / Gram stain Layer 3 */}
-            {hoveredCategory === 'Culture / Gram stain' && hoveredSubItem === 'Culture' && fuzzyFilter(cultureOrganisms, l3SearchTerm).map(org => (
+            {hoveredCategory === 'Culture / Gram stain' && hoveredSubItem === 'Culture' && fuzzyFilter(mergedCultureOrganisms, l3SearchTerm).map(org => (
               <button key={org} onClick={() => { onItemClick('Lab data', `${hoveredItem} Culture: ${org}`); setHoveredItem(null); resetSubStates(); }} className="w-full px-4 py-2.5 text-left text-xs font-semibold hover:bg-cyan-50 hover:text-cyan-700 transition-colors border-b border-slate-50 last:border-0">{org}</button>
             ))}
-            {hoveredCategory === 'Culture / Gram stain' && hoveredSubItem === 'Gram stain' && fuzzyFilter(gramStainResults, l3SearchTerm).map(stain => (
+            {hoveredCategory === 'Culture / Gram stain' && hoveredSubItem === 'Gram stain' && fuzzyFilter(mergedGramStain, l3SearchTerm).map(stain => (
               <button key={stain} onClick={() => { onItemClick('Lab data', `${hoveredItem} Gram stain: ${stain}`); setHoveredItem(null); resetSubStates(); }} className="w-full px-4 py-2.5 text-left text-xs font-semibold hover:bg-cyan-50 hover:text-cyan-700 transition-colors border-b border-slate-50 last:border-0">{stain}</button>
             ))}
 
@@ -687,7 +688,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick, customItems = {}, onAddC
       {/* --- ADD CUSTOM ITEM CASCADE MENUS (Separate Portals) --- */}
       {showAddCustom && addMenuFlyoutPos && createPortal(
         <div
-          className="fixed z-[10000] bg-white border border-slate-200 rounded-lg shadow-xl animate-in fade-in zoom-in-95 duration-100 min-w-[180px] overflow-hidden flex flex-col pointer-events-auto"
+          className="fixed z-[10000] bg-white border border-slate-200 rounded-lg shadow-xl animate-in fade-in zoom-in-95 duration-100 min-w-[200px] overflow-hidden flex flex-col pointer-events-auto"
           style={{
             top: addMenuFlyoutPos.top,
             left: addMenuFlyoutPos.left,
@@ -702,31 +703,45 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick, customItems = {}, onAddC
         >
           <div className="p-2 bg-slate-50 border-b text-[10px] font-bold text-slate-400 uppercase text-center">Select Category</div>
           <div className="overflow-y-auto custom-scrollbar flex-1 py-1">
-            {Object.keys(ADD_MENU_STRUCTURE).map(cat => (
-              <div
-                key={cat}
-                onMouseEnter={(e) => {
-                  setAddMenuHoveredL1(cat);
-                  if (ADD_MENU_STRUCTURE[cat as keyof typeof ADD_MENU_STRUCTURE]) {
-                    const rect = e.currentTarget.getBoundingClientRect();
-                    setAddMenuL2FlyoutPos({ top: rect.top, left: rect.right + 2 });
-                  } else {
-                    setAddMenuL2FlyoutPos(null);
-                  }
-                }}
-                onClick={() => {
-                  if (!ADD_MENU_STRUCTURE[cat as keyof typeof ADD_MENU_STRUCTURE]) {
-                    setNewCustomCategory(cat);
-                    setNewCustomCategoryDisplay(cat);
-                    setAddMenuFlyoutPos(null);
-                  }
-                }}
-                className={`px-4 py-2 text-xs font-semibold cursor-pointer flex justify-between items-center transition-colors ${addMenuHoveredL1 === cat ? 'bg-blue-50 text-blue-700' : 'text-slate-700 hover:bg-slate-50'}`}
-              >
-                {cat}
-                {ADD_MENU_STRUCTURE[cat as keyof typeof ADD_MENU_STRUCTURE] && <ChevronRight className="w-3 h-3 text-slate-400" />}
-              </div>
-            ))}
+            {visibleCategories.map(cat => {
+              let hasSub = false;
+              const menuDataItems = MENU_DATA.find(m => m.category === cat)?.items || [];
+
+              if (cat === 'Culture / Gram stain') hasSub = true;
+              else if (cat === 'Treatment') hasSub = true;
+              else if (cat === 'Physical examination') hasSub = true;
+              else if (menuDataItems.length > 0 && cat !== 'Vital Sign' && cat !== 'Symptom' && cat !== 'Negative Symptom') {
+                if (cat === 'Disease') hasSub = false;
+                else if (cat === 'Medical Facility') hasSub = false;
+                else hasSub = false;
+              }
+
+              return (
+                <div
+                  key={cat}
+                  onMouseEnter={(e) => {
+                    setAddMenuHoveredL1(cat);
+                    if (hasSub) {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      setAddMenuL2FlyoutPos({ top: rect.top, left: rect.right + 2 });
+                    } else {
+                      setAddMenuL2FlyoutPos(null);
+                    }
+                  }}
+                  onClick={() => {
+                    if (!hasSub) {
+                      setNewCustomCategory(cat);
+                      setNewCustomCategoryDisplay(cat);
+                      setAddMenuFlyoutPos(null);
+                    }
+                  }}
+                  className={`px-4 py-2 text-xs font-semibold cursor-pointer flex justify-between items-center transition-colors ${addMenuHoveredL1 === cat ? 'bg-blue-50 text-blue-700' : 'text-slate-700 hover:bg-slate-50'}`}
+                >
+                  {cat}
+                  {hasSub && <ChevronRight className="w-3 h-3 text-slate-400" />}
+                </div>
+              );
+            })}
           </div>
         </div>,
         document.body
@@ -749,36 +764,67 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick, customItems = {}, onAddC
           >
             <div className="p-2 bg-slate-50 border-b text-[10px] font-bold text-slate-400 uppercase text-center">{addMenuHoveredL1} Sub-type</div>
             <div className="overflow-y-auto custom-scrollbar flex-1 py-1">
-              {/* Specific Logic for Antibiotics or other sub-menues */}
-              {addMenuHoveredL1 === 'Treatment' && ['Antibiotics', 'Other'].map(sub => (
-                <div
-                  key={sub}
-                  className={`px-4 py-2 text-xs font-semibold cursor-pointer flex justify-between items-center transition-colors hover:bg-blue-50 hover:text-blue-700 group`}
-                >
-                  {sub}
-                  <ChevronRight className="w-3 h-3 text-slate-400 group-hover:text-blue-500" />
-                  {/* Layer 3 Logic just for Antibiotics for now */}
-                  {sub === 'Antibiotics' && (
-                    <div className="hidden group-hover:block absolute left-full top-0 w-64 bg-white border border-slate-200 rounded-lg shadow-xl ml-1 max-h-[60vh] overflow-y-auto">
-                      {abxCategories.map(abxCat => (
-                        <button
-                          key={abxCat}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setNewCustomCategory(abxCat);
-                            setNewCustomCategoryDisplay(abxCat); // e.g. "Penicillins..."
-                            setAddMenuFlyoutPos(null);
-                            setAddMenuL2FlyoutPos(null);
-                          }}
-                          className="w-full text-left px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-blue-50 hover:text-blue-700 border-b border-slate-50 last:border-0"
-                        >
-                          {abxCat}
-                        </button>
-                      ))}
+              {(() => {
+                let subItems: (string | { label: string; hasSub: boolean; targetKey?: string })[] = [];
+
+                if (addMenuHoveredL1 === 'Culture / Gram stain') {
+                  subItems = [{ label: 'Culture', hasSub: false, targetKey: 'Culture' }, { label: 'Gram stain', hasSub: false, targetKey: 'Gram stain' }];
+                } else if (addMenuHoveredL1 === 'Treatment') {
+                  const items = MENU_DATA.find(m => m.category === 'Treatment')?.items || [];
+                  subItems = items.map(i => ({
+                    label: i,
+                    hasSub: i === 'Antibiotics',
+                    targetKey: i
+                  }));
+                } else if (addMenuHoveredL1 === 'Physical examination') {
+                  const items = MENU_DATA.find(m => m.category === 'Physical examination')?.items || [];
+                  subItems = items.map(i => ({ label: i, hasSub: false, targetKey: i }));
+                }
+
+                return subItems.map(subItem => {
+                  const label = typeof subItem === 'string' ? subItem : subItem.label;
+                  const hasSub = typeof subItem === 'string' ? false : subItem.hasSub;
+                  const targetKey = typeof subItem === 'string' ? subItem : (subItem.targetKey || label);
+
+                  return (
+                    <div
+                      key={label}
+                      className={`px-4 py-2 text-xs font-semibold cursor-pointer flex justify-between items-center transition-colors hover:bg-blue-50 hover:text-blue-700 group`}
+                      onClick={() => {
+                        if (!hasSub) {
+                          setNewCustomCategory(targetKey);
+                          setNewCustomCategoryDisplay(`${addMenuHoveredL1} > ${label}`);
+                          setAddMenuFlyoutPos(null);
+                          setAddMenuL2FlyoutPos(null);
+                        }
+                      }}
+                    >
+                      {label}
+                      {hasSub && <ChevronRight className="w-3 h-3 text-slate-400 group-hover:text-blue-500" />}
+
+                      {hasSub && label === 'Antibiotics' && (
+                        <div className="hidden group-hover:block absolute left-full top-0 w-64 bg-white border border-slate-200 rounded-lg shadow-xl ml-1 max-h-[60vh] overflow-y-auto">
+                          {abxCategories.map(abxCat => (
+                            <button
+                              key={abxCat}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setNewCustomCategory(abxCat);
+                                setNewCustomCategoryDisplay(abxCat);
+                                setAddMenuFlyoutPos(null);
+                                setAddMenuL2FlyoutPos(null);
+                              }}
+                              className="w-full text-left px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-blue-50 hover:text-blue-700 border-b border-slate-50 last:border-0"
+                            >
+                              {abxCat}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              ))}
+                  );
+                });
+              })()}
             </div>
           </div>,
           document.body
