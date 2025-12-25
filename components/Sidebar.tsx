@@ -683,6 +683,107 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick, customItems = {}, onAddC
         </div>,
         document.body
       )}
+
+      {/* --- ADD CUSTOM ITEM CASCADE MENUS (Separate Portals) --- */}
+      {showAddCustom && addMenuFlyoutPos && createPortal(
+        <div
+          className="fixed z-[10000] bg-white border border-slate-200 rounded-lg shadow-xl animate-in fade-in zoom-in-95 duration-100 min-w-[180px] overflow-hidden flex flex-col pointer-events-auto"
+          style={{
+            top: addMenuFlyoutPos.top,
+            left: addMenuFlyoutPos.left,
+            maxHeight: '60vh'
+          }}
+          onMouseLeave={() => {
+            if (!addMenuL2FlyoutPos) {
+              setAddMenuFlyoutPos(null);
+              setAddMenuHoveredL1(null);
+            }
+          }}
+        >
+          <div className="p-2 bg-slate-50 border-b text-[10px] font-bold text-slate-400 uppercase text-center">Select Category</div>
+          <div className="overflow-y-auto custom-scrollbar flex-1 py-1">
+            {Object.keys(ADD_MENU_STRUCTURE).map(cat => (
+              <div
+                key={cat}
+                onMouseEnter={(e) => {
+                  setAddMenuHoveredL1(cat);
+                  if (ADD_MENU_STRUCTURE[cat as keyof typeof ADD_MENU_STRUCTURE]) {
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    setAddMenuL2FlyoutPos({ top: rect.top, left: rect.right + 2 });
+                  } else {
+                    setAddMenuL2FlyoutPos(null);
+                  }
+                }}
+                onClick={() => {
+                  if (!ADD_MENU_STRUCTURE[cat as keyof typeof ADD_MENU_STRUCTURE]) {
+                    setNewCustomCategory(cat);
+                    setNewCustomCategoryDisplay(cat);
+                    setAddMenuFlyoutPos(null);
+                  }
+                }}
+                className={`px-4 py-2 text-xs font-semibold cursor-pointer flex justify-between items-center transition-colors ${addMenuHoveredL1 === cat ? 'bg-blue-50 text-blue-700' : 'text-slate-700 hover:bg-slate-50'}`}
+              >
+                {cat}
+                {ADD_MENU_STRUCTURE[cat as keyof typeof ADD_MENU_STRUCTURE] && <ChevronRight className="w-3 h-3 text-slate-400" />}
+              </div>
+            ))}
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {showAddCustom && addMenuL2FlyoutPos && addMenuHoveredL1 && (
+        createPortal(
+          <div
+            className="fixed z-[10001] bg-white border border-slate-200 rounded-lg shadow-xl animate-in fade-in zoom-in-95 duration-100 min-w-[200px] overflow-hidden flex flex-col pointer-events-auto"
+            style={{
+              top: addMenuL2FlyoutPos.top,
+              left: addMenuL2FlyoutPos.left,
+              maxHeight: '60vh'
+            }}
+            onMouseLeave={() => {
+              setAddMenuL2FlyoutPos(null);
+              setAddMenuHoveredL1(null);
+              setAddMenuFlyoutPos(null);
+            }}
+          >
+            <div className="p-2 bg-slate-50 border-b text-[10px] font-bold text-slate-400 uppercase text-center">{addMenuHoveredL1} Sub-type</div>
+            <div className="overflow-y-auto custom-scrollbar flex-1 py-1">
+              {/* Specific Logic for Antibiotics or other sub-menues */}
+              {addMenuHoveredL1 === 'Treatment' && ['Antibiotics', 'Other'].map(sub => (
+                <div
+                  key={sub}
+                  className={`px-4 py-2 text-xs font-semibold cursor-pointer flex justify-between items-center transition-colors hover:bg-blue-50 hover:text-blue-700 group`}
+                >
+                  {sub}
+                  <ChevronRight className="w-3 h-3 text-slate-400 group-hover:text-blue-500" />
+                  {/* Layer 3 Logic just for Antibiotics for now */}
+                  {sub === 'Antibiotics' && (
+                    <div className="hidden group-hover:block absolute left-full top-0 w-64 bg-white border border-slate-200 rounded-lg shadow-xl ml-1 max-h-[60vh] overflow-y-auto">
+                      {abxCategories.map(abxCat => (
+                        <button
+                          key={abxCat}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setNewCustomCategory(abxCat);
+                            setNewCustomCategoryDisplay(abxCat); // e.g. "Penicillins..."
+                            setAddMenuFlyoutPos(null);
+                            setAddMenuL2FlyoutPos(null);
+                          }}
+                          className="w-full text-left px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-blue-50 hover:text-blue-700 border-b border-slate-50 last:border-0"
+                        >
+                          {abxCat}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>,
+          document.body
+        )
+      )}
     </div>
   );
 };
