@@ -1,13 +1,13 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { 
-  User, 
-  signInWithPopup, 
-  signOut as firebaseSignOut, 
+import {
+  User,
+  signInWithPopup,
+  signOut as firebaseSignOut,
   onAuthStateChanged,
   AuthError
 } from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { onSnapshot, updateDoc, arrayUnion, doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, googleProvider, db } from '../firebaseConfig';
 
 interface AuthContextType {
@@ -67,9 +67,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await signInWithPopup(auth, googleProvider);
     } catch (error: any) {
       console.error("Error signing in with Google", error);
-      
+
       let errorMessage = "Login failed. Please try again.";
-      
+
       if (error.code === 'auth/configuration-not-found') {
         errorMessage = "設定錯誤：尚未在 Firebase Console 啟用驗證服務。\n請前往 Authentication 頁面點擊 'Get Started'。";
       } else if (error.code === 'auth/operation-not-allowed') {
@@ -100,10 +100,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!user) return;
     try {
       // Store in Firestore under the user's document
-      await setDoc(doc(db, 'users', user.uid), { 
+      await setDoc(doc(db, 'users', user.uid), {
         geminiApiKey: key,
         updatedAt: new Date().toISOString(),
-        email: user.email 
+        email: user.email
       }, { merge: true });
       setApiKey(key);
     } catch (error) {
@@ -115,14 +115,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const removeApiKey = async () => {
     if (!user) return;
     try {
-        await setDoc(doc(db, 'users', user.uid), { 
-            geminiApiKey: null,
-            updatedAt: new Date().toISOString()
-        }, { merge: true });
-        setApiKey(null);
+      await setDoc(doc(db, 'users', user.uid), {
+        geminiApiKey: null,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+      setApiKey(null);
     } catch (error) {
-        console.error("Error removing API key:", error);
-        throw error;
+      console.error("Error removing API key:", error);
+      throw error;
     }
   }
 
