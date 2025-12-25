@@ -729,11 +729,9 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick, customItems = {}, onAddC
                     }
                   }}
                   onClick={() => {
-                    if (!hasSub) {
-                      setNewCustomCategory(cat);
-                      setNewCustomCategoryDisplay(cat);
-                      setAddMenuFlyoutPos(null);
-                    }
+                    setNewCustomCategory(cat);
+                    setNewCustomCategoryDisplay(cat);
+                    setAddMenuFlyoutPos(null);
                   }}
                   className={`px-4 py-2 text-xs font-semibold cursor-pointer flex justify-between items-center transition-colors ${addMenuHoveredL1 === cat ? 'bg-blue-50 text-blue-700' : 'text-slate-700 hover:bg-slate-50'}`}
                 >
@@ -750,7 +748,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick, customItems = {}, onAddC
       {showAddCustom && addMenuL2FlyoutPos && addMenuHoveredL1 && (
         createPortal(
           <div
-            className="fixed z-[10001] bg-white border border-slate-200 rounded-lg shadow-xl animate-in fade-in zoom-in-95 duration-100 min-w-[200px] overflow-hidden flex flex-col pointer-events-auto"
+            className="fixed z-[10001] bg-white border border-slate-200 rounded-lg shadow-xl animate-in fade-in zoom-in-95 duration-100 min-w-[200px] flex flex-col pointer-events-auto"
             style={{
               top: addMenuL2FlyoutPos.top,
               left: addMenuL2FlyoutPos.left,
@@ -791,12 +789,10 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick, customItems = {}, onAddC
                       key={label}
                       className={`px-4 py-2 text-xs font-semibold cursor-pointer flex justify-between items-center transition-colors hover:bg-blue-50 hover:text-blue-700 group`}
                       onClick={() => {
-                        if (!hasSub) {
-                          setNewCustomCategory(targetKey);
-                          setNewCustomCategoryDisplay(`${addMenuHoveredL1} > ${label}`);
-                          setAddMenuFlyoutPos(null);
-                          setAddMenuL2FlyoutPos(null);
-                        }
+                        setNewCustomCategory(targetKey);
+                        setNewCustomCategoryDisplay(`${addMenuHoveredL1} > ${label}`);
+                        setAddMenuFlyoutPos(null);
+                        setAddMenuL2FlyoutPos(null);
                       }}
                     >
                       {label}
