@@ -469,7 +469,11 @@ const MainApp: React.FC = () => {
 
       <div className="flex-1 flex overflow-hidden">
         <div style={{ width: sidebarWidth }} className="flex-shrink-0 z-10 flex flex-col">
-          <Sidebar onItemClick={handleSidebarItemClick} />
+          <Sidebar
+            onItemClick={handleSidebarItemClick}
+            customItems={customItems}
+            onAddCustomItem={handleAddCustomItem}
+          />
         </div>
         <div className="w-1 bg-slate-300 hover:bg-blue-500 cursor-col-resize z-20 transition-colors" onMouseDown={startResize('sidebar')} />
         <div style={{ width: timelineWidth }} className="flex-shrink-0 z-0 flex flex-col">
