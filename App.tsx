@@ -84,6 +84,7 @@ const MainApp: React.FC = () => {
   const [historyIndex, setHistoryIndex] = useState(-1); // -1 means no history yet
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [showKeyModal, setShowKeyModal] = useState(false);
+  const [isTrialMode, setIsTrialMode] = useState(false);
 
   const [copied, setCopied] = useState(false);
   const [timepointToDelete, setTimepointToDelete] = useState<{ id: string, index: number } | null>(null);
@@ -394,8 +395,8 @@ const MainApp: React.FC = () => {
 
   const activeEvent = events.find(e => e.id === activeEventId);
 
-  // If no API Key is set, force the modal
-  const showRequiredKeyModal = !apiKey && !showKeyModal;
+  // If no API Key is set AND user hasn't opted into trial, force the modal
+  const showRequiredKeyModal = !apiKey && !showKeyModal && !isTrialMode;
 
   return (
     <div className="h-screen w-screen flex flex-col bg-slate-50 text-slate-800 font-sans overflow-hidden">
@@ -412,11 +413,15 @@ const MainApp: React.FC = () => {
         onSave={async (key) => {
           await saveApiKey(key);
           setShowKeyModal(false);
+          // If they saved a key, trial mode state is irrelevant, but we can reset it or leave it.
         }}
-        isDismissible={!!apiKey}
+        isDismissible={!!apiKey || isTrialMode}
         onDismiss={() => setShowKeyModal(false)}
         trialUsageCount={trialUsageCount}
-        onStartTrial={() => setShowKeyModal(false)}
+        onStartTrial={() => {
+          setShowKeyModal(false);
+          setIsTrialMode(true);
+        }}
       />
 
       {/* Version History Modal */}
