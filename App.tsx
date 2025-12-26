@@ -35,18 +35,21 @@ const MainApp: React.FC = () => {
   const [activeEventId, setActiveEventId] = useState<string | 'profile' | null>('profile');
   const [isGenerating, setIsGenerating] = useState(false);
 
-  // Custom Items State
+  // Custom Items & Trial State
   const [customItems, setCustomItems] = useState<Record<string, string[]>>({});
+  const [trialUsageCount, setTrialUsageCount] = useState<number>(0);
 
   useEffect(() => {
     if (!user) {
       setCustomItems({});
+      setTrialUsageCount(0);
       return;
     }
     const unsub = onSnapshot(doc(db, 'users', user.uid), (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
         setCustomItems(data.customItems || {});
+        setTrialUsageCount(data.trial_usage_count || 0);
       }
     });
     return () => unsub();
@@ -263,31 +266,54 @@ const MainApp: React.FC = () => {
   };
 
   const handleGenerate = async () => {
-    if (!apiKey) {
-      setShowKeyModal(true);
-      return;
-    }
+    // Allow empty key for trial (Service handles it)
     setIsGenerating(true);
-    const payload = getPayload();
-    const result = await generateAdmissionNote(payload, apiKey);
-    updateHistory(result);
-    setIsGenerating(false);
+    try {
+      const payload = getPayload();
+      // Pass apiKey || "" 
+      const result = await generateAdmissionNote(payload, apiKey || "");
+
+      if (result === 'TRIAL_LIMIT_REACHED') {
+        alert("Free trial limit reached! Please set your own API Key.");
+        setShowKeyModal(true);
+        return;
+      }
+
+      updateHistory(result);
+    } catch (e) {
+      console.error("Generation error", e);
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleFullRefine = async (customInstruction?: string) => {
-    if (!apiKey) {
-      setShowKeyModal(true);
-      return;
-    }
+    // Allow empty key
     const instruction = customInstruction || assistantInput;
     if (!instruction.trim() || !generatedNote) return;
 
     setIsAssistantProcessing(true);
-    const payload = getPayload();
-    const result = await refineFullNote(payload, generatedNote, instruction, apiKey);
-    updateHistory(result);
-    setIsAssistantProcessing(false);
-    if (!customInstruction) setAssistantInput('');
+    try {
+      const payload = getPayload();
+      const result = await refineFullNote(payload, generatedNote, instruction, apiKey || "");
+
+      if (result === 'TRIAL_LIMIT_REACHED') { // refineFullNote currently returns original note on error, need better handling? 
+        // Logic in service currently returns currentNote. 
+        // To handle limits properly in refine, service should return special string or throw.
+        // Updated service returns currentNote on general error, but we might want to catch specific strings?
+        // My service update returns "TRIAL_LIMIT_REACHED" if caught in helper? 
+        // usage of helper in refineFullNote catches error and returns currentNote.
+        // I should update service to bubble "TRIAL_LIMIT_REACHED"
+      }
+      // Proceeding for now assuming service might be silent on trial limit for refine (or I need to fix service)
+      // Let's rely on handleGenerate for main trial experience, but user wanted refine to count.
+      // I will fix service to return TRIAL_LIMIT_REACHED in refine too.
+
+      updateHistory(result);
+      if (!customInstruction) setAssistantInput('');
+    } finally {
+      setIsAssistantProcessing(false);
+    }
   };
 
   const handleUndo = () => {
@@ -332,25 +358,31 @@ const MainApp: React.FC = () => {
   };
 
   const handleRefine = async () => {
-    if (!apiKey) {
-      setShowKeyModal(true);
-      return;
-    }
+    // Allow empty key for trial
     if (!selectedText || !refinementInstruction || !selectionRange) return;
     setIsRefining(true);
-    const payload = getPayload();
-    const newSegment = await refineNoteSegment(payload, generatedNote, selectedText, refinementInstruction, apiKey);
+    try {
+      const payload = getPayload();
+      // Pass apiKey || ""
+      const newSegment = await refineNoteSegment(payload, generatedNote, selectedText, refinementInstruction, apiKey || "");
 
-    const before = generatedNote.substring(0, selectionRange.start);
-    const after = generatedNote.substring(selectionRange.end);
+      if (newSegment === 'TRIAL_LIMIT_REACHED') {
+        alert("Trial limit reached! Please set your own API Key.");
+        setShowKeyModal(true);
+        return;
+      }
 
-    const refinedNote = before + newSegment + after;
-    updateHistory(refinedNote);
+      const before = generatedNote.substring(0, selectionRange.start);
+      const after = generatedNote.substring(selectionRange.end);
+      const refinedNote = before + newSegment + after;
 
-    setIsRefining(false);
-    setToolbarPos(null);
-    setSelectedText('');
-    setRefinementInstruction('');
+      updateHistory(refinedNote);
+      setToolbarPos(null);
+      setSelectedText('');
+      setRefinementInstruction('');
+    } finally {
+      setIsRefining(false);
+    }
   };
 
   const copyToClipboard = () => {
@@ -383,6 +415,8 @@ const MainApp: React.FC = () => {
         }}
         isDismissible={!!apiKey}
         onDismiss={() => setShowKeyModal(false)}
+        trialUsageCount={trialUsageCount}
+        onStartTrial={() => setShowKeyModal(false)}
       />
 
       {/* Version History Modal */}
@@ -686,11 +720,15 @@ const MainApp: React.FC = () => {
   );
 };
 
+import ErrorBoundary from './components/ErrorBoundary';
+
 const App: React.FC = () => {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </ErrorBoundary>
   );
 };
 

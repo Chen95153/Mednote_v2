@@ -7,13 +7,17 @@ interface ApiKeyModalProps {
   onSave: (key: string) => Promise<void>;
   isDismissible?: boolean;
   onDismiss?: () => void;
+  trialUsageCount?: number;
+  onStartTrial?: () => void;
 }
 
-const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ 
-  isOpen, 
-  onSave, 
+const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
+  isOpen,
+  onSave,
   isDismissible = false,
-  onDismiss 
+  onDismiss,
+  trialUsageCount,
+  onStartTrial
 }) => {
   const [inputKey, setInputKey] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -40,7 +44,7 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
   return (
     <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm" onClick={isDismissible ? onDismiss : undefined} />
-      
+
       <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-300">
         <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-6 text-white text-center">
           <div className="bg-white/20 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-md">
@@ -80,11 +84,11 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
               </div>
               {error && <p className="text-red-500 text-xs mt-2 font-medium">{error}</p>}
             </div>
-            
+
             <div className="text-center">
-              <a 
-                href="https://aistudio.google.com/app/apikey" 
-                target="_blank" 
+              <a
+                href="https://aistudio.google.com/app/apikey"
+                target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800 font-semibold hover:underline"
               >
@@ -95,13 +99,24 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
 
           <div className="flex items-center space-x-3 pt-2">
             {isDismissible && (
-               <button
+              <button
                 onClick={onDismiss}
                 className="flex-1 py-3 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition-colors"
               >
                 Cancel
               </button>
             )}
+
+            {/* Free Trial Button */}
+            {onStartTrial && trialUsageCount !== undefined && trialUsageCount < 5 && (
+              <button
+                onClick={onStartTrial}
+                className="flex-1 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold rounded-xl hover:brightness-110 shadow-lg shadow-emerald-200 transition-all flex flex-col items-center justify-center leading-tight"
+              >
+                <span>Free Trial ({5 - trialUsageCount} left)</span>
+              </button>
+            )}
+
             <button
               onClick={handleSave}
               disabled={isSaving || !inputKey}

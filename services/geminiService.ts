@@ -1,30 +1,69 @@
 
 import { GoogleGenAI } from "@google/genai";
 import { SYSTEM_INSTRUCTION } from '../constants';
+import { functions } from '../firebaseConfig';
+import { httpsCallable } from 'firebase/functions';
 
-// Helper to create client with dynamic key
-const createClient = (apiKey: string) => {
-    return new GoogleGenAI({ apiKey });
+/**
+ * Helper to call Gemini either directly (if apiKey provided) or via Proxy (if Free Trial)
+ */
+const getGeminiResponse = async (
+  contents: string,
+  apiKey: string,
+  temperature: number,
+  model: string = 'gemini-3-flash-preview'
+): Promise<string> => {
+  console.log(`[getGeminiResponse] apiKey='${apiKey}' length=${apiKey?.length}`);
+  // Treat whitespace-only strings or short invalid strings (like 'aaa') as empty
+  if (apiKey && apiKey.trim().length >= 30) {
+    // Direct Client-Side Call
+    const ai = new GoogleGenAI({ apiKey });
+    try {
+      const response = await ai.models.generateContent({
+        model,
+        contents,
+        config: {
+          systemInstruction: SYSTEM_INSTRUCTION,
+          temperature,
+        },
+      });
+      return response.text || "";
+    } catch (error) {
+      console.error("Direct Gemini Error:", error);
+      throw error;
+    }
+  } else {
+    // Proxy Call (Server-Side Key)
+    const callProxy = httpsCallable(functions, 'callGeminiProxy');
+    try {
+      const result = await callProxy({
+        contents,
+        systemInstruction: SYSTEM_INSTRUCTION,
+        model,
+        temperature
+      });
+      return (result.data as any).text || "";
+    } catch (error: any) {
+      console.error("Proxy Gemini Error:", error);
+      // Propagate error message (e.g. "Trial limit reached")
+      throw new Error(error.message || "Error connecting to AI service.");
+    }
+  }
 };
 
 export const generateAdmissionNote = async (data: any, apiKey: string): Promise<string> => {
-  if (!apiKey) return "Error: API Key is missing.";
-  const ai = createClient(apiKey);
-
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: JSON.stringify(data),
-      config: {
-        systemInstruction: SYSTEM_INSTRUCTION,
-        temperature: 0.3,
-      },
-    });
-
-    return response.text || "Error: No response generated.";
-  } catch (error) {
-    console.error("Error generating note:", error);
-    return "Error generating note. Please check the console for details.";
+    const text = await getGeminiResponse(
+      JSON.stringify(data),
+      apiKey,
+      0.3
+    );
+    return text || "Error: No response generated.";
+  } catch (error: any) {
+    if (error.message.includes('Trial limit reached')) {
+      return "TRIAL_LIMIT_REACHED";
+    }
+    return "Error generating note. Please check console.";
   }
 };
 
@@ -37,9 +76,6 @@ export const refineFullNote = async (
   instruction: string,
   apiKey: string
 ): Promise<string> => {
-  if (!apiKey) return currentNote;
-  const ai = createClient(apiKey);
-
   const refinePrompt = `
     You are a medical scribe assistant. 
     ORIGINAL DATA SOURCE (JSON): ${JSON.stringify(originalData)}
@@ -59,19 +95,12 @@ export const refineFullNote = async (
   `;
 
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: refinePrompt,
-      config: {
-        systemInstruction: SYSTEM_INSTRUCTION,
-        temperature: 0.4,
-      },
-    });
-
-    return response.text || currentNote;
-  } catch (error) {
-    console.error("Error refining full note:", error);
-    return currentNote;
+    return await getGeminiResponse(refinePrompt, apiKey, 0.4);
+  } catch (error: any) {
+    if (error.message && error.message.includes('Trial limit reached')) {
+      return "TRIAL_LIMIT_REACHED";
+    }
+    return currentNote; // Return original on error to be safe
   }
 };
 
@@ -82,9 +111,6 @@ export const refineNoteSegment = async (
   instruction: string,
   apiKey: string
 ): Promise<string> => {
-  if (!apiKey) return selectedSegment;
-  const ai = createClient(apiKey);
-
   const refinePrompt = `
     You are a medical scribe assistant. 
     ORIGINAL DATA SOURCE (JSON): ${JSON.stringify(originalData)}
@@ -108,18 +134,11 @@ export const refineNoteSegment = async (
   `;
 
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: refinePrompt,
-      config: {
-        systemInstruction: SYSTEM_INSTRUCTION,
-        temperature: 0.4,
-      },
-    });
-
-    return response.text?.trim() || selectedSegment;
-  } catch (error) {
-    console.error("Error refining segment:", error);
+    return await getGeminiResponse(refinePrompt, apiKey, 0.4);
+  } catch (error: any) {
+    if (error.message && error.message.includes('Trial limit reached')) {
+      return "TRIAL_LIMIT_REACHED";
+    }
     return selectedSegment;
   }
 };
